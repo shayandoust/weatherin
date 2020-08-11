@@ -1,13 +1,26 @@
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <cursesw.h>
 #include <curl/curl.h>
+
+#include <nlohmann/json.hpp>
 
 #include "Misc.hpp"
 
 using namespace std;
+using namespace nlohmann;
 
-static string Url = "https://api.openweathermap.org/data/2.5/weather";
+static string WeatherApiUrl = "https://api.openweathermap.org/data/2.5/weather";
+static string LocationApiUrl = "https://ipinfo.io/";
+
+string GetJsonResponse(string ApiUrl);
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+json MiscClass::ConvertStringToJson(string JsonString)
+{
+	return json::parse(JsonString);
+}
 
 string MiscClass::GetStringInput()
 {
@@ -31,16 +44,28 @@ string MiscClass::GetStringInput()
 	return Entry;
 }
 
-static string *Response;
-
 string MiscClass::GetWeatherData(string ApiKey, string CountryCode, string City)
 {
 	// Concatenate necessary CountryCode and City into Url
-	Url = Url + "?q=" + City + "," + CountryCode + "&APPID=" + ApiKey;
+	WeatherApiUrl = WeatherApiUrl + "?q=" + City + "," + CountryCode + "&APPID=" + ApiKey + "&units=metric";
 
+	return GetJsonResponse(WeatherApiUrl);
+}
+
+string MiscClass::GetLocation(string ApiKey)
+{
+	// Concatenate the Api key into the Url
+	LocationApiUrl = LocationApiUrl + "?token=" + ApiKey;
+
+	return GetJsonResponse(LocationApiUrl);
+}
+
+string GetJsonResponse(string ApiUrl)
+{
 	CURL *Curl;
 	ostringstream Oss;
 	struct curl_slist *Headers = NULL;
+	string ResponseBuffer;
 
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
@@ -51,37 +76,31 @@ string MiscClass::GetWeatherData(string ApiKey, string CountryCode, string City)
 	// Instantiate curl
 	if ((Curl = curl_easy_init()))
 	{
-		curl_easy_setopt(Curl, CURLOPT_URL, Url.c_str());
+		curl_easy_setopt(Curl, CURLOPT_URL, ApiUrl.c_str());
 
 		// Verify peer especially as we are using https
 		curl_easy_setopt(Curl, CURLOPT_SSL_VERIFYPEER, 1L);
 		curl_easy_setopt(Curl, CURLOPT_SSL_VERIFYHOST, 1L);
 
+		curl_easy_setopt(Curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(Curl, CURLOPT_WRITEDATA, &ResponseBuffer);
+
 		// Perform operation
-		if (curl_easy_perform(Curl) == CURLE_OK)
-		{
-			char *Ct;
-			if (curl_easy_getinfo(Curl, CURLINFO_CONTENT_TYPE, &Ct))
-				return *Response;
-		}
+		if (curl_easy_perform(Curl) != CURLE_OK)
+			exit(EXIT_FAILURE);
+
+		return ResponseBuffer;
+
 	}
 	// Cleanup
 	curl_slist_free_all(Headers);
 	curl_easy_cleanup(Curl);
 }
 
-
-// Based on suggestion on StackOverflow
-static int Writer(char *Data, size_t Size, size_t Nmemb, string *BufferIn)
+// Coutesy of StackOverflow
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	// Check if buffer is not empty
-	if (BufferIn)
-	{
-		BufferIn -> append(Data, Size * Nmemb);
-
-		Response = BufferIn;
-
-		return Size * Nmemb;
-	}
-	return 0;
+	((std::string*)userp)->append((char*)contents, size * nmemb);
+	
+	return size * nmemb;
 }

@@ -6,11 +6,17 @@
 #include <cstdlib>
 #include <cursesw.h>
 
+#include <nlohmann/json.hpp>
+
 #include <unistd.h>
 
 #include "Misc.hpp"
 
+#define IPLOCATIONAPIKEY "3ed74100b8d485"
+#define WEATHERAPIKEY "783a8cc9f5dc1a800eb1b61382f8b2c6"
+
 using namespace std;
+using namespace nlohmann;
 
 void Cleanup(WINDOW* Window);
 
@@ -27,19 +33,18 @@ int main(int argc, char* argv[])
 	}
 
 	// Prompt to use IP address for location
-	printw("Attempt to use IP address to get location?: ");
+	printw("Will attempt to use IP address for location in 5 seconds. Ctrl+C to terminate");
 	refresh();
+	sleep(5);
 
-	// Get input
-	string Prompt = Misc.GetStringInput();
-	::transform(Prompt.begin(), Prompt.end(), Prompt.begin(), ::tolower);
+	string LocationData = Misc.GetLocation(IPLOCATIONAPIKEY);
+	json LocationDataJson = Misc.ConvertStringToJson(LocationData);
 
-	// Test
-	string TestData = Misc.GetWeatherData("783a8cc9f5dc1a800eb1b61382f8b2c6", "uk", "Chester");
-	cout << TestData << endl;
-	refresh();	
+	string WeatherData = Misc.GetWeatherData(WEATHERAPIKEY,
+			LocationDataJson["country"].get<string>().c_str(),
+			LocationDataJson["city"].get<string>().c_str());
+	json WeatherDataJson = Misc.ConvertStringToJson(WeatherData);
 
-	sleep(10);
 
 	Cleanup(MainWindow);
 }
