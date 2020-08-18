@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <fstream>
 #include <cursesw.h>
 #include <curl/curl.h>
 
@@ -13,9 +14,57 @@ using namespace nlohmann;
 
 static string WeatherApiUrl = "https://api.openweathermap.org/data/2.5/weather";
 static string LocationApiUrl = "https://ipinfo.io/";
+static string AsciiArtDirectory = "ascii-art/";
 
 string GetJsonResponse(string ApiUrl);
+string GetFileContents(ifstream& File);
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+string MiscClass::GetCorrespondingAsciiArt(int WeatherType)
+{
+	string AsciiFileToRead;
+	// WeatherType of 1: sunny
+	// WeatherType of 2: cloudy
+	// WeatherType of 3: thunder / lightning
+	switch(WeatherType)
+	{
+		case 1:
+			AsciiFileToRead = AsciiArtDirectory + "sun";
+			break;
+		case 2:
+			AsciiFileToRead = AsciiArtDirectory + "cloud";
+			break;
+		case 3:
+			AsciiFileToRead = AsciiArtDirectory + "thunder-cloud";
+			break;
+	}
+
+	// Now, read the ascii data and return
+	string AsciiData;
+
+	ifstream FileReader(AsciiFileToRead);
+	AsciiData = GetFileContents(FileReader);
+	FileReader.close();
+}
+
+// Learnt courtesy of cplusplus.com
+string GetFileContents(ifstream& File)
+{
+	string AllLines; // All of the lines in the file
+
+	if (File)
+	{
+		while (File.good())
+		{
+			string TempLine;
+			getline(File, TempLine);
+			TempLine += "\n";
+
+			AllLines += TempLine;
+		}
+		return AllLines;
+	}
+}
 
 json MiscClass::ConvertStringToJson(string JsonString)
 {
