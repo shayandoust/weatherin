@@ -4,6 +4,7 @@
 
 // Variables atomised for weather data
 extern std::string Description;
+extern std::string ShortDesc;
 extern std::string Country;
 extern std::string City;
 extern double CurrTemp;

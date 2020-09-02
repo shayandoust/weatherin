@@ -14,7 +14,7 @@ using namespace nlohmann;
 
 static string WeatherApiUrl = "https://api.openweathermap.org/data/2.5/weather";
 static string LocationApiUrl = "https://ipinfo.io/";
-static string AsciiArtDirectory = "ascii-art/";
+static string AsciiArtDirectory = "src/ascii-arts/";
 
 string GetJsonResponse(string ApiUrl);
 string GetFileContents(ifstream& File);
@@ -45,6 +45,8 @@ string MiscClass::GetCorrespondingAsciiArt(int WeatherType)
 	ifstream FileReader(AsciiFileToRead);
 	AsciiData = GetFileContents(FileReader);
 	FileReader.close();
+
+	return AsciiData;
 }
 
 // Learnt courtesy of cplusplus.com
@@ -64,6 +66,8 @@ string GetFileContents(ifstream& File)
 		}
 		return AllLines;
 	}
+	else
+		cout << "File does not exist!" << endl;
 }
 
 json MiscClass::ConvertStringToJson(string JsonString)

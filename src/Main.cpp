@@ -22,11 +22,13 @@ using namespace nlohmann;
 void Cleanup(WINDOW* Window);
 void SignalCallbackHandler(int Sig);
 void WriteScreen(WINDOW* Window);
+void PollForExit(WINDOW* Window);
 
 MiscClass Misc;
 
 // State declared global variables
 string Description;
+string ShortDesc;
 string Country;
 string City;
 double CurrTemp;
@@ -51,13 +53,8 @@ int main(int argc, char* argv[])
 
 	// Register signal handler.
 	// Used for when using ctrl+c to exit application
+	// TODO: Requires improvement to destroy window
 	signal(SIGINT, SignalCallbackHandler);
-
-
-	// Prompt to use IP address for location
-	printw("Will attempt to use IP address for location in 5 seconds. Ctrl+C to terminate");
-	refresh();
-	sleep(1);
 
 	string LocationData = Misc.GetLocation(IPLOCATIONAPIKEY);
 	json LocationDataJson = Misc.ConvertStringToJson(LocationData);
@@ -69,6 +66,7 @@ int main(int argc, char* argv[])
 
 	// Define the global variables
 	Description = WeatherDataJson["weather"][0]["description"].get<string>();
+	ShortDesc = WeatherDataJson["weather"][0]["main"].get<string>();
 	Country = LocationDataJson["country"].get<string>();
 	City = LocationDataJson["city"].get<string>();
 	CurrTemp = WeatherDataJson["main"]["temp"].get<double>();
@@ -90,9 +88,27 @@ void WriteScreen(WINDOW* Window)
 	// Add various location information to the top left of the screen
 	string LocationDescription = "Current weather data in " + City + ", " + Country;
 	mvwprintw(Window, 1, 1, LocationDescription.c_str());
+
+	if (ShortDesc == "Sun")
+		mvwprintw(Window, 10, 10, Misc.GetCorrespondingAsciiArt(1).c_str());
+
+	//mvwprintw(Window, 20, 20, Misc.GetCorrespondingAsciiArt(WType).c_str());
+	
+	// Now, add weather description above the ASCII image
+	string WeatherDescription = "Weather condition right now: " + Description;
+	mvwprintw(Window, 10, 1, WeatherDescription.c_str());
+	
 	refresh();
-	sleep(10);
-	Cleanup(Window);
+
+	PollForExit(Window);
+}
+
+void PollForExit(WINDOW* Window)
+{
+	// Simply wait, and if the user presses q key, exit
+	// q key on keyboard = 113
+	if (getch() == 113)
+		Cleanup(Window);
 }
 
 void SignalCallbackHandler(int Sig)
